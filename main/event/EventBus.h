@@ -21,23 +21,19 @@ class EventBus : public EventSubscriber, public EventProducer {
         Event *ptr;
     };
 
-    static void onEventHandler(void *self, esp_event_base_t event_base, int32_t id, void *args) {
-        bus::log::info("event handle: %s, %d", event_base, id);
-        switch (id) {
-            case 0:
-                ((EventBus *) self)->onSystemHandler(args);
-                break;
-            default:
-                break;
-        }
+    static void onEventHandler(void *self, esp_event_base_t group, int32_t id, void *args) {
+        bus::log::info("event handle: %s, %d", group, id);
+        ((EventBus *) self)->onSystemHandler(group, id, args);
     }
 
-    void onSystemHandler(void *args) {
-        auto *holder = (EventHolder *) args;
-        bus::log::info("handle system");
-        if (holder && holder->ptr) {
-            onEvent(*holder->ptr);
-            delete holder->ptr;
+    void onSystemHandler(esp_event_base_t group, int32_t id, void *args) {
+        if (group == _id && id == 0) {
+            auto *holder = (EventHolder *) args;
+            if (holder && holder->ptr) {
+                bus::log::info("handle event: %d", holder->ptr->getEventId());
+                onEvent(*holder->ptr);
+                delete holder->ptr;
+            }
         }
     }
 

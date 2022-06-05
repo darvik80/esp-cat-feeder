@@ -25,7 +25,7 @@ struct MqttProperties {
     const char *rootCa;
 };
 
-struct MqttConnected : TEvent<Event_MQTT_DISCONNECTED> {
+struct MqttConnected : TEvent<Event_MQTT_CONNECTED> {
 };
 
 
