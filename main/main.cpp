@@ -25,24 +25,24 @@ extern "C" {
 #include "service/Application.h"
 #include "event/EventSubscriber.h"
 
-#define BLINK_LED_RMT_CHANNEL 0
+#define BLINK_LED_GPIO GPIO_NUM_4
+#define BLINK_LED_RMT_CHANNEL 1
 
 class FeederApp
         : public TApplication<TRegistry<EventBus>>, public TEventSubscriber<FeederApp, WifiConnected> {
-    led_strip_t *_strip;
+    led_strip_t *_strip{nullptr};
 public:
     void setup() override {
         getRegistry().getEventBus().subscribe(this);
 
-        gpio_reset_pin(GPIO_NUM_8);
+        gpio_reset_pin(BLINK_LED_GPIO);
         /* Set the GPIO as a push/pull output */
-        gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
+        gpio_set_direction(BLINK_LED_GPIO, GPIO_MODE_OUTPUT);
 
-        _strip = led_strip_init(BLINK_LED_RMT_CHANNEL, GPIO_NUM_8, 1);
+        _strip = led_strip_init(BLINK_LED_RMT_CHANNEL, BLINK_LED_GPIO, 1);
         _strip->clear(_strip, 50);
 
-        _strip->set_pixel(_strip, 0, 16, 16, 16);
-        /* Refresh the strip to send data */
+        _strip->set_pixel(_strip, 0, 255, 255, 255);
         _strip->refresh(_strip, 100);
         TApplication::setup();
     }
