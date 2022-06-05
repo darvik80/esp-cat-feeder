@@ -11,57 +11,71 @@
 #include "freertos/task.h"
 #include "esp_chip_info.h"
 #include "esp_spi_flash.h"
+#include "nvs_flash.h"
 
-#include "esp_log.h"
+#include "event/EventBus.h"
 
 extern "C" {
     void app_main(void);
 }
 
-static const char* TAG = "app";
+#include "service/Application.h"
+#include "event/EventSubscriber.h"
 
-class Application {
+class FeederApp
+        : public TApplication<TRegistry<EventBus>>, public TEventSubscriber<FeederApp, WifiConnected> {
 public:
-    void setup() {
-        ESP_LOGI(TAG, "setup");
+    void setup() override {
+        getRegistry().getEventBus().subscribe(this);
+        TApplication::setup();
     }
 
-    void loop() {
-        ESP_LOGI(TAG, "loop");
+    void loop() override {
+        TApplication::loop();
+    }
+
+    void handleEvent(const WifiConnected &msg) {
+        logging::info(
+                "onWifiConnected: " IPSTR "/" IPSTR ", gw: " IPSTR,
+                IP2STR(&msg.ip),
+                IP2STR(&msg.netmask),
+                IP2STR(&msg.gw)
+        );
     }
 };
 
-
 void app_main(void) {
-    ESP_LOGW(TAG, "test system");
-    ESP_LOGE(TAG, "test error");
+    //Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 
-    printf("Hello World!\n");
-
-    /* Print chip information */
     esp_chip_info_t chip_info;
     esp_chip_info(&chip_info);
-    printf("This is %s chip with %d CPU core(s), WiFi%s%s, ",
-           CONFIG_IDF_TARGET,
-           chip_info.cores,
-           (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-           (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+    printf(
+            "This is %s chip with %d CPU core(s), WiFi%s%s, ",
+            CONFIG_IDF_TARGET,
+            chip_info.cores,
+            (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+            (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : ""
+    );
 
     printf("silicon revision %d, ", chip_info.revision);
 
-    printf("%uMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-           (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+    printf(
+            "%uMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external"
+    );
 
     printf("Minimum free heap size: %d bytes\n", esp_get_minimum_free_heap_size());
 
-    Application app;
+    FeederApp app;
     app.setup();
-    for (int i = 10; i >= 0; i--) {
-        printf("Restarting in %d seconds...\n", i);
-        app.loop();
+
+    for (;;) {
         vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
-    printf("Restarting now.\n");
-    fflush(stdout);
-    esp_restart();
 }

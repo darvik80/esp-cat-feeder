@@ -6,4 +6,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 
 project(esp-cat-feeder)
 
-include_directories("src")
+include_directories("main")

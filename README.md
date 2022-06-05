@@ -15,3 +15,8 @@ idf.py set-target esp32
 idf.py build
 idf.py flash
 ```
+
+* Troubleshoots
+- ['undefined reference to `rom_temp_to_power'](https://github.com/espressif/esp-idf/issues/7946)<br>
+uncomment 'rom_temp_to_power = 0x40001ab4;' in file 
+~/esp/esp-idf/components/esp_rom/esp32c3/ld/esp32c3.rom.ld
