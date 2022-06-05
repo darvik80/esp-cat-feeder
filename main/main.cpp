@@ -5,6 +5,7 @@
  */
 
 #include <stdio.h>
+#include <driver/gpio.h>
 
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
@@ -12,6 +13,8 @@
 #include "esp_chip_info.h"
 #include "esp_spi_flash.h"
 #include "nvs_flash.h"
+
+#include "led_strip.h"
 
 #include "event/EventBus.h"
 
@@ -22,11 +25,25 @@ extern "C" {
 #include "service/Application.h"
 #include "event/EventSubscriber.h"
 
+#define BLINK_LED_RMT_CHANNEL 0
+
 class FeederApp
         : public TApplication<TRegistry<EventBus>>, public TEventSubscriber<FeederApp, WifiConnected> {
+    led_strip_t *_strip;
 public:
     void setup() override {
         getRegistry().getEventBus().subscribe(this);
+
+        gpio_reset_pin(GPIO_NUM_8);
+        /* Set the GPIO as a push/pull output */
+        gpio_set_direction(GPIO_NUM_8, GPIO_MODE_OUTPUT);
+
+        _strip = led_strip_init(BLINK_LED_RMT_CHANNEL, GPIO_NUM_8, 1);
+        _strip->clear(_strip, 50);
+
+        _strip->set_pixel(_strip, 0, 16, 16, 16);
+        /* Refresh the strip to send data */
+        _strip->refresh(_strip, 100);
         TApplication::setup();
     }
 
